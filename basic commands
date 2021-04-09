@@ -75,7 +75,7 @@ ssh root@10.0.2.15 -p 2222
 sudo yum -y update
 sudo yum install -y epel-release
 sudo yum -y install nginx
-systemctl start && status nginx
+systemctl start && status nginx //in my nginx conf file you can see proxy pass redirection and simple https settings
 
 
 
