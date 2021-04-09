@@ -1,0 +1,81 @@
+#Just like Windows, iOS, and Mac OS, Linux is an operating system. In fact, one of the most popular platforms on the planet, Android, is powered by the Linux operating system. 
+An operating system is software that manages all of the hardware resources associated with your desktop or laptop. To put it simply, the operating system manages the 
+communication between your software and your hardware. Without the operating system (OS), the software wouldn?t function.
+
+#Linux is also distributed under an open source license. Open source follows these key tenants:
+
+The freedom to run the program, for any purpose.
+The freedom to study how the program works, and change it to make it do what you wish.
+The freedom to redistribute copies so you can help your neighbor.
+The freedom to distribute copies of your modified versions to others.
+
+#Create your first VM based on Centos Distrubiton (VmWare or Virtualbox or GCloud)
+>What is Distrubiton:
+__Linux has a number of different versions to suit any type of user. From new users to hard-core users, you’ll find a “flavor” of Linux to match your needs. 
+These versions are called distributions (or, in the short form, “distros”). Nearly every distribution of Linux can be downloaded for free, burned onto disk (or USB thumb drive),
+and installed (on as many machines as you like).
+
+Popular Linux distributions include:
+
+LINUX MINT
+MANJARO
+DEBIAN
+UBUNTU
+ANTERGOS
+SOLUS
+FEDORA
+ELEMENTARY OS
+OPENSUSE
+
+#create your first user
+useradd emre
+passwd emre // set password for emre and confirm it
+
+#let emre can run sudo commands to get root ability
+visudo
+
+#Edit the lines below
+## Allow root to run any commands anywhere
+root    ALL=(ALL)       ALL
+emrecloud75    ALL=(ALL)       NOPASSWD: ALL
+emre    ALL=(ALL)       NOPASSWD: ALL
+
+#To let emre or anyuser switch without password validation between eachother
+root    ALL=(ALL)       ALL
+emre        ALL=(ALL)       NOPASSWD: ALL
+emrecloud75        ALL=(ALL)       NOPASSWD: ALL
+
+
+#SSH authantication
+SSH, also known as Secure Shell or Secure Socket Shell, is a network protocol that gives users, particularly system administrators, a secure way to access a computer over
+an unsecured network. In addition to providing secure network services, SSH refers to the suite of utilities that implement the SSH protocol. Secure Shell provides strong 
+password authentication and public key authentication, as well as encrypted data communications between two computers connecting over an open network, such as the internet. 
+In addition to providing strong encryption, SSH is widely used by network administrators for managing systems and applications remotely, enabling them to log in to another 
+computer over a network, execute commands and move files from one computer to another.
+
+#Go to your local host or another client
+ssh-keygen
+ssh-copy-id username@centosmachine_ip
+#you'll be able to login without password to your centos machine from another computer or VM.
+
+#Long way description of rssh authentication without password
+cat /.ssh/id_rsa_pub/authorized_keys
+#copy this code and paste in to your centos machine in where
+cd ./ssh
+touch authorized_keys
+wq! // After press escape type wq! means write&quit
+
+#If you've set up your machine on Virtualbox,  you will need to go Settings -> Network -> NAT binding -> Advance Setitngs and ive public and machine port
+#ssh port is 22 so you may give 2222 port number to connect your machine
+#Simple command shoudl be like this
+ssh root@10.0.2.15 -p 2222
+
+
+#Install nginx and configure listen port
+sudo yum -y update
+sudo yum install -y epel-release
+sudo yum -y install nginx
+systemctl start && status nginx
+
+
+
