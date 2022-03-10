@@ -1,0 +1,39 @@
+stages:
+  - run stage
+  - run prod
+
+Run Stage:
+  stage: run stage
+  image:
+    name: registry.emre.com/centos:centos7
+  only:
+    - master
+  when: manual  
+  before_script:
+    - export LANG=en_US.UTF-8
+    - export LC_ALL=en_US.UTF-8
+    - yum -y install python3 python3-pip openssh-server openssh-clients
+    - pip3 install -U pip setuptools
+    - pip3 install ansible==2.9.16
+    - cp $SSH_PRIVATE_KEY /root/emre.pem
+    - chmod 400 /root/emre.pem
+  script:
+    - ansible-playbook -i stage-inventory.ini playbook.yml --private-key=/root/emre.pem -b -u emre
+
+Run Prod:
+  stage: run prod
+  image:
+    name: registry.emre.com/centos:centos7
+  only:
+    - master
+  when: manual  
+  before_script:
+    - export LANG=en_US.UTF-8
+    - export LC_ALL=en_US.UTF-8
+    - yum -y install python3 python3-pip openssh-server openssh-clients
+    - pip3 install -U pip setuptools
+    - pip3 install ansible==2.9.16
+    - cp $SSH_PRIVATE_KEY /root/emre.pem
+    - chmod 400 /root/emre.pem
+  script:
+    - ansible-playbook -i inventory.ini playbook.yml --private-key=/root/emre.pem -b -u pe
