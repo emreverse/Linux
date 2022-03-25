@@ -1,0 +1,71 @@
+{
+    "size": 100,
+    "query": {
+        "bool": {
+            "filter": [
+                {
+                    "range": {
+                        "@timestamp": {
+                            "from": "{{period_end}}||-5m",
+                            "to": "{{period_end}}",
+                            "include_lower": true,
+                            "include_upper": true,
+                            "format": "epoch_millis",
+                            "boost": 1
+                        }
+                    }
+                },
+                {
+                    "query_string": {
+                        "query": "container_name: \"name-service\" AND x.level: \"error\" AND NOT x.msg: \"Cannot perform this task now.\"",
+                        "fields": [],
+                        "type": "best_fields",
+                        "default_operator": "or",
+                        "max_determinized_states": 10000,
+                        "enable_position_increments": true,
+                        "fuzziness": "AUTO",
+                        "fuzzy_prefix_length": 0,
+                        "fuzzy_max_expansions": 50,
+                        "phrase_slop": 0,
+                        "escape": false,
+                        "auto_generate_synonyms_phrase_query": true,
+                        "fuzzy_transpositions": true,
+                        "boost": 1
+                    }
+                }
+            ],
+            "adjust_pure_negative": true,
+            "boost": 1
+        }
+    },
+    "_source": {
+        "includes": [
+            "_id",
+            "kubernetes.container_name",
+            "x.traceId",
+            "x.message",
+            "x.msg",
+            "short_message",
+            "container_name"
+        ],
+        "excludes": []
+    },
+    "sort": [
+        {
+            "@timestamp": {
+                "order": "desc"
+            }
+        }
+    ],
+    "aggregations": {
+        "msg": {
+            "significant_text": {
+                "size": 10,
+                "min_doc_count": 3,
+                "shard_min_doc_count": 0,
+                "field": "x.msg.keyword",
+                "jlh": {}
+            }
+        }
+    }
+}
