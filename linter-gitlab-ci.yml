@@ -1,0 +1,24 @@
+image: terragrunt:latest
+
+before_script:
+  - export cfgpath=$(mktemp -p $(pwd) -d)
+  - eval $(ssh-agent -s -a ${cfgpath}/ssh-agent)
+  - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+  - mkdir -p ~/.ssh
+  - chmod 700 ~/.ssh
+  - echo -e "Host *\n\tStrictHostKeyChecking no\n\n" >> ~/.ssh/config
+  - cd non-prod
+  - sh /app/install-tf-tg-version.sh
+stages:
+    - format
+    - plan
+    - apply
+    # - destroy
+
+format:
+    stage: format
+    script:
+      - terragrunt hclfmt
+      - 'FORMAT=$(terragrunt hclfmt 2>&1) && if [[ -n $FORMAT ]]; then echo -e "ERROR in terragrunt linter, please fix:\n${FORMAT}" && exit 1; fi'
+    only:
+      - merge_requests
