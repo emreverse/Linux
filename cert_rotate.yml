@@ -1,0 +1,204 @@
+---
+
+- name: Modify required files on masters play
+  hosts: masters
+  become: true
+  tasks:
+    - name: Replace values in kube-apiserver.yaml file
+      lineinfile:
+        backup: false
+        backrefs: true
+        state: present
+        path: /etc/kubernetes/manifests/kube-apiserver.yaml
+        regexp: '^(\s*)[#]?{{ item.search }}(: )*'
+        line: '\1{{ item.replace }}'
+      loop:
+        - search: '\- --feature-gates=RotateKubeletClientCertificate=true'
+          replace: '- --feature-gates=RotateKubeletClientCertificate=true,RotateKubeletServerCertificate=true'
+
+- name: Modify required files on all nodes play
+  hosts: all
+  become: true
+  tasks:
+    - name: Ensure required content exists in /etc/kubernetes/kubelet.env
+      lineinfile:
+        path: /etc/kubernetes/kubelet.env
+        regexp: '--rotate-server-certificates'
+        state: absent
+      check_mode: true
+      changed_when: false
+      register: result
+
+    - name: Change kubelet.env if required
+      lineinfile:
+        path: /etc/kubernetes/kubelet.env
+        insertafter: '--runtime-cgroups=/systemd/system.slice .*'
+        line: "--rotate-server-certificates \\"
+        state: present
+      when: not result.found
+
+    - name: Restart kubelet
+      service:
+        name: kubelet
+        state: restarted
+
+- name: Rotate certificates on masters play
+  hosts: masters
+  become: true
+  tasks:
+    - name: Run cert rotate commands on master nodes
+      command: "{{ item }}"
+      when: true
+      with_items:
+        - kubeadm alpha certs renew admin.conf --cert-dir /etc/kubernetes/ssl
+        - kubeadm alpha certs renew apiserver --cert-dir /etc/kubernetes/ssl
+        - kubeadm alpha certs renew apiserver-kubelet-client --cert-dir /etc/kubernetes/ssl
+        - kubeadm alpha certs renew controller-manager.conf --cert-dir /etc/kubernetes/ssl
+        - kubeadm alpha certs renew front-proxy-client --cert-dir /etc/kubernetes/ssl
+        - kubeadm alpha certs renew scheduler.conf --cert-dir /etc/kubernetes/ssl
+
+    - name: Copy newly generated kubeconfig to /root/.kube/config
+      copy:
+        src: /etc/kubernetes/admin.conf
+        dest: /root/.kube/config
+        owner: root
+        group: root
+        remote_src: true
+        mode: 0600
+
+    - name: Restart docker
+      service:
+        name: docker
+        state: restarted
+
+    - name: Get certificate date
+      command: kubeadm alpha certs check-expiration --config="/etc/kubernetes/kubeadm-config.yaml"
+      when: true
+      register: check
+
+    - name: Print certificate information
+      debug:
+        msg: "{{ check.stdout }}"
+
+- name: Wait for kubelet is started successfully on all nodes
+  hosts: all
+  become: true
+  tasks:
+    - name: Wait for port 10250 to become open
+      wait_for:
+        host: "{{ inventory_hostname }}"
+        port: 10250
+        delay: 10
+        connect_timeout: 5
+
+- name: Approve csrs on first master play
+  hosts: masters[0]
+  become: true
+  tasks:
+    - name: Wait for port 6443 to become open
+      wait_for:
+        host: "{{ inventory_hostname }}"
+        port: 6443
+        delay: 10
+        connect_timeout: 5
+
+    - name: Run csr approve command
+      shell: kubectl get csr | grep -i pending | awk  '{print  $1}' | xargs kubectl certificate approve
+      when: true
+      ignore_errors: true
+
+- name: Reboot all machines play
+  hosts: all
+  become: true
+  tasks:
+    - name: Reboot the machine
+      reboot:
+        post_reboot_delay: 30
+        reboot_timeout: 300
+
+- name: Fetch newly generated kubeconfig play
+  hosts: masters[0]
+  become: true
+  tasks:
+    - name: Fetch kubeconfig from remote host
+      fetch:
+        src: /root/.kube/config
+        dest: "generated/{{ inventory_hostname }}_admin.conf"
+        flat: true
+
+- name: Generate developer token and fetch kubeconfig play
+  hosts: masters[0]
+  become: true
+  gather_facts: true
+  tasks:
+    - name: Ensure jq is installed on RedHat based hosts
+      block:
+        - name: Ensure RPM GPG key is imported for epel
+          rpm_key:
+            state: present
+            key: http://download.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-7
+
+        - name: Install epel-release
+          yum:
+            name: epel-release
+            state: present
+            enablerepo: extras
+
+        - name: Ensure jq is installed
+          yum:
+            name: jq
+            state: present
+            enablerepo: epel
+      when: ansible_facts['os_family'] == "RedHat"
+
+    - name: Ensure jq is installed on Debian based hosts
+      block:
+        - name: Install jq
+          apt:
+            name: jq
+            state: present
+      when: ansible_facts['os_family'] == "Debian"
+
+    - name: Get developer service account secret
+      shell: kubectl get sa developer -n kube-system -o json | jq -r '.secrets[].name'
+      register: secret
+      when: true
+
+    - name: Get developer token
+      shell: kubectl get secret {{ secret.stdout }} -n kube-system -o json | jq -r '.data["token"]' | base64 -d
+      register: developer_token
+      when: true
+
+    - name: Show developer_token for debugging
+      debug:
+        var: developer_token.stdout_lines
+
+    - name: Read and modify the admin config
+      set_fact:
+        developer_config: "{{ (lookup('file', 'generated/{{ inventory_hostname }}_admin.conf') | from_yaml) | combine(override) }}"
+      vars:
+        override:
+          users:
+            - name: kubernetes-admin
+              user:
+                token: "{{ developer_token.stdout_lines[0] }}"
+
+    - name: Save the developer config
+      copy:
+        content: '{{ developer_config | to_nice_yaml }}'
+        dest: /root/.kube/developer_config
+        mode: 0600
+        owner: root
+        group: root
+
+    - name: Replace kubernetes-admin with developer on kubeconfig
+      replace:
+        path: /root/.kube/developer_config
+        regexp: '(kubernetes-admin)'
+        replace: 'developer'
+
+    - name: Fetch developer kubeconfig from remote host
+      fetch:
+        src: /root/.kube/developer_config
+        dest: "generated/{{ inventory_hostname }}_developer.conf"
+        flat: true
