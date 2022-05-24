@@ -1,0 +1,86 @@
+- name: Fetch newly generated kubeconfig play
+  hosts: masters[0]
+  become: true
+  tasks:
+    - name: Fetch kubeconfig from remote host
+      fetch:
+        src: /etc/kubernetes/admin.conf
+        dest: "generated/{{ inventory_hostname }}_admin.conf"
+        flat: true
+
+- name: Generate developer token and fetch kubeconfig play
+  hosts: masters[0]
+  become: true
+  gather_facts: true
+  tasks:
+    - name: Ensure jq is installed on RedHat based hosts
+      block:
+        - name: Ensure RPM GPG key is imported for epel
+          rpm_key:
+            state: present
+            key: http://download.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-7
+
+        - name: Install epel-release
+          yum:
+            name: epel-release
+            state: present
+            enablerepo: extras
+
+        - name: Ensure jq is installed
+          yum:
+            name: jq
+            state: present
+            enablerepo: epel
+      when: ansible_facts['os_family'] == "RedHat"
+
+    - name: Ensure jq is installed on Debian based hosts
+      block:
+        - name: Install jq
+          apt:
+            name: jq
+            state: present
+      when: ansible_facts['os_family'] == "Debian"
+
+    - name: Get developer service account secret
+      shell: kubectl get sa developer -n kube-system -o json | jq -r '.secrets[].name'
+      register: secret
+      when: true
+
+    - name: Get developer token
+      shell: kubectl get secret {{ secret.stdout }} -n kube-system -o json | jq -r '.data["token"]' | base64 -d
+      register: developer_token
+      when: true
+
+    - name: Show developer_token for debugging
+      debug:
+        var: developer_token.stdout_lines
+
+    - name: Read and modify the admin config
+      set_fact:
+        developer_config: "{{ (lookup('file', 'generated/{{ inventory_hostname }}_admin.conf') | from_yaml) | combine(override) }}"
+      vars:
+        override:
+          users:
+            - name: kubernetes-admin
+              user:
+                token: "{{ developer_token.stdout_lines[0] }}"
+
+    - name: Save the developer config
+      copy:
+        content: '{{ developer_config | to_nice_yaml }}'
+        dest: /root/.kube/developer_config
+        mode: 0600
+        owner: root
+        group: root
+
+    - name: Replace kubernetes-admin with developer on kubeconfig
+      replace:
+        path: /root/.kube/developer_config
+        regexp: '(kubernetes-admin)'
+        replace: 'developer'
+
+    - name: Fetch developer kubeconfig from remote host
+      fetch:
+        src: /root/.kube/developer_config
+        dest: "generated/{{ inventory_hostname }}_developer.conf"
+        flat: true
