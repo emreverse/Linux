@@ -5,9 +5,19 @@ call plug#begin(has('nvim') ? stdpath('data') . '/plugged' : '~/.vim/plugged')
 Plug 'tpope/vim-sensible'
 Plug 'junegunn/seoul256.vim'
 
+call plug#begin()
+Plug 'fatih/vim-go', { 'do': ':GoInstallBinaries' }
+call plug#end()
+
 " List ends here. Plugins become visible to Vim after this call.
 call plug#end()
 nmap <F6> :NERDTreeToggle<CR>
+
+syntax on
+set incsearch
+set history=1000
+set wildmenu
+set wildmode=list:longest
 
 " NERDTress File highlighting
 function! NERDTreeHighlightFile(extension, fg, bg, guifg, guibg)
@@ -24,8 +34,3 @@ call NERDTreeHighlightFile('conf', 'yellow', 'none', 'yellow', '#151515')
 call NERDTreeHighlightFile('json', 'yellow', 'none', 'yellow', '#151515')
 call NERDTreeHighlightFile('sh', 'red', 'none', 'red', '#151515')
 call NERDTreeHighlightFile('yml', 'cyan', 'none', 'cyan', '#151515')
-call NERDTreeHighlightFile('pages', 'cyan', 'none', 'cyan', '#151515')
-call NERDTreeHighlightFile('js', 'cyan', 'none', 'cyan', '#151515')
-call NERDTreeHighlightFile('py', 'Red', 'none', 'red', '#151515')
-call NERDTreeHighlightFile('log', 'Red', 'none', '#ffa500', '#151515')
-call NERDTreeHighlightFile('mod', 'Magenta', 'none', '#ff00ff', '#151515')
