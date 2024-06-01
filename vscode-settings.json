@@ -1,0 +1,16 @@
+{
+    "workbench.colorTheme": "Github Purple",
+    "tabnine.experimentalAutoImports": true,
+    "files.autoSave": "afterDelay",
+    "editor.fontVariations": false,
+    "terminal.integrated.fontFamily": "MesloLGS NF",
+    "security.workspace.trust.untrustedFiles": "open",
+    "terminal.integrated.enableImages": true,
+    "terminal.integrated.gpuAcceleration": "canvas",
+    "terminal.integrated.defaultProfile.osx": "zsh",
+    "terminal.integrated.accessibleViewFocusOnCommandExecution": true,
+    "terminal.integrated.macOptionClickForcesSelection": true,
+    "terminal.integrated.cursorBlinking": true,
+    "terminal.integrated.cursorStyle": "line",
+    "editor.fontLigatures": false
+}
