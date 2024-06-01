@@ -1,0 +1,28 @@
+import = [
+    "/Users/yecs/.config/alacritty/themes/themes/coolnight.toml"
+]
+
+[ env ]
+TERM = "xterm-256color"
+
+[window]
+padding.x = 10
+padding.y = 60
+
+decorations = "Buttonless"
+
+opacity = 0.97
+
+#option_as_alt = "Both"
+
+
+[font]
+normal.family = "MesloLGS Nerd Font Mono"
+size = 17
+offset.x = 0
+offset.y = 0
+
+[cursor]
+style = { shape = "Beam", blinking = "Always" }
+
+
