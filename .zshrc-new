@@ -70,3 +70,8 @@ _comp_options+=(globdots)
 
 bindkey "^[[1;3C" forward-word
 bindkey "^[[1;3D" backward-word
+
+# ---- FZF -----
+
+# Set up fzf key bindings and fuzzy completion
+eval "$(fzf --zsh)"
