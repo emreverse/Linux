@@ -38,3 +38,8 @@ mods = "Command"
 action = "SearchBackward"
 key = "?"
 mods = "Command|Shift"
+
+
+[shell]
+program = "/bin/bash"
+args = ["-l", "-c", "tmux attach || tmux"]
