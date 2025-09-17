@@ -34,3 +34,11 @@ call NERDTreeHighlightFile('conf', 'yellow', 'none', 'yellow', '#151515')
 call NERDTreeHighlightFile('json', 'yellow', 'none', 'yellow', '#151515')
 call NERDTreeHighlightFile('sh', 'red', 'none', 'red', '#151515')
 call NERDTreeHighlightFile('yml', 'cyan', 'none', 'cyan', '#151515')
+
+
+vnoremap <C-c> "+y
+vnoremap <C-v> "+p
+
+let &t_SI = "\<Esc>]50;CursorShape=1\x7"
+let &t_SR = "\<Esc>]50;CursorShape=2\x7"
+let &t_EI = "\<Esc>]50;CursorShape=0\x7"
